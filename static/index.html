@@ -16,6 +16,11 @@
         reconnectionAttempts: Infinity,
         reconnectionDelay: 500,
     });
+
+    socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
+    });
+    
     const max_charts = 8;
     const max_measures = 8;
     const beats_per_measure = 4;
