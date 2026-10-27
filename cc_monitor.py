@@ -1,7 +1,6 @@
 from threading import Thread
-from queue import Queue
 import os
-import time
+from collections import deque
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -21,7 +20,7 @@ tick_count = 0 #current MIDI clock tick
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=2)
 ports = midi_in.get_ports()
-midi_queue = Queue(maxsize=10000)
+midi_queue = deque(maxlen=5000)
 
 # Prefer MODEP MIDI output ports if present
 preferred = [
@@ -57,13 +56,7 @@ def midi_thread():
     while True:
         msg = midi_in.get_message()
         while msg:
-            try:
-                midi_queue.put_nowait(msg)
-            except:
-                # queue full — drop oldest
-                midi_queue.get_nowait()
-                midi_queue.put_nowait(msg)
-
+            midi_queue.append(msg)   # never blocks
             msg = midi_in.get_message()
 
 
