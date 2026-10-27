@@ -72,7 +72,7 @@ def midi_listener():
             tick_count += 1
             if tick_count >= TICKS_PER_BEAT:
                 tick_count = 0
-
+            print("EMIT", msg)
             socketio.emit("update_tick", {"tick": tick_count})
             continue
 
