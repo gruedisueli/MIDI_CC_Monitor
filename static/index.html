@@ -86,8 +86,6 @@
             else{
                 chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
             }
-            chart.options.plugins.annotation.annotations["currentValue"].yMin = v
-            chart.options.plugins.annotation.annotations["currentValue"].yMax = v
             chart.update()
         })
     }
@@ -134,9 +132,11 @@
             createChart(cc)
         }
 
-        current_cc_vals[cc] = parseInt(val)
-        
-        updateCharts()
+        const v = parseInt(val)
+        current_cc_vals[cc] = v
+        chart.options.plugins.annotation.annotations["currentValue"].yMin = v
+        chart.options.plugins.annotation.annotations["currentValue"].yMax = v
+        chart.update()
     })
 
     </script>
