@@ -32,8 +32,13 @@
     let current_tick = 0;
 
     function createChart(cc) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "chart-wrapper";
+
         const ctx = document.createElement("canvas");
-        document.getElementById("charts").appendChild(ctx);
+        wrapper.appendChild(ctx);
+
+        document.getElementById("charts").appendChild(wrapper);
 
         // Precompute beat line annotations
         const annotations = {};
@@ -158,21 +163,28 @@
 html, body {
   height: 100%;
   margin: 0;
-  padding: 20px; /* moved padding here */
-  box-sizing: border-box;
 }
 
 #charts {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 60px); /* header space */
   gap: 10px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-#charts canvas {
-  width: 100% !important;
-  flex: 1 1 0; /* critical: ensures equal height distribution */
+.chart-wrapper {
+  flex: 1 1 0;          /* each chart gets equal vertical space */
+  width: 100%;
 }
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;  /* fill wrapper */
+  display: block;
+}
+
 
 </style>
 
