@@ -155,24 +155,25 @@
     </script>
 </body>
 <style>
-    
-  html, body {
+html, body {
   height: 100%;
   margin: 0;
-  }
+  padding: 20px; /* moved padding here */
+  box-sizing: border-box;
+}
 
-  #charts {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 60px); /* subtract header height */
-    gap: 10px; /* spacing between charts */
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  #charts canvas {
-    width: 100% !important;
-    flex: 1 1 auto; /* each chart gets equal vertical space */
-  }
+#charts {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  gap: 10px;
+}
+
+#charts canvas {
+  width: 100% !important;
+  flex: 1 1 0; /* critical: ensures equal height distribution */
+}
+
 </style>
 
 </html>
