@@ -19,17 +19,23 @@ tick_count = 0 #current MIDI clock tick
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=3)
 ports = midi_in.get_ports()
-print(ports)
 
-# Pisound JACK ports always appear as system:midi_capture_N
-capture_ports = [p for p in ports if p.startswith("system:midi_capture")]
+# Prefer MODEP MIDI output ports if present
+preferred = [
+    p for p in ports
+    if "mod-midi-merger:out" in p or "mod-midi-broadcaster:out" in p
+]
 
-if not capture_ports:
-    raise RuntimeError("No Pisound JACK MIDI capture ports found")
+# Otherwise fall back to Pisound hardware ports
+if not preferred:
+    preferred = [p for p in ports if p.startswith("system:midi_capture")]
 
-# Open the first capture port
-index = ports.index(capture_ports[0])
+if not preferred:
+    raise RuntimeError("No usable JACK MIDI ports found")
+
+index = ports.index(preferred[0])
 midi_in.open_port(index)
+print("Opened JACK port:", preferred[0])
 
 # WEB SERVER
 app = Flask(__name__)
