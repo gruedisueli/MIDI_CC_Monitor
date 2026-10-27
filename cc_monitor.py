@@ -12,7 +12,6 @@ MIDI_CC_MESSAGE = 0xB0
 MIDI_START_MESSAGE = 0xFA
 MIDI_CONTINUE_MESSAGE = 0xFB
 MIDI_STOP_MESSAGE = 0xFC
-MIDI_PORT_NAME = "pisound"
 
 # STATE
 tick_count = 0 #current MIDI clock tick
@@ -22,15 +21,15 @@ midi_in = rtmidi.MidiIn(rtapi=3)
 ports = midi_in.get_ports()
 print(ports)
 
-# Find pisound MIDI
-port_identified = False
-for i, p in enumerate(ports):
-    if MIDI_PORT_NAME in p.lower():
-        midi_in.open_port(i)
-        port_identified = True
-        break
-if not port_identified:
-    raise RuntimeError("Pisound MIDI port not found")
+# Pisound JACK ports always appear as system:midi_capture_N
+capture_ports = [p for p in ports if p.startswith("system:midi_capture")]
+
+if not capture_ports:
+    raise RuntimeError("No Pisound JACK MIDI capture ports found")
+
+# Open the first capture port
+index = ports.index(capture_ports[0])
+midi_in.open_port(index)
 
 # WEB SERVER
 app = Flask(__name__)
