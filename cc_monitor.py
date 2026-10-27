@@ -20,6 +20,7 @@ tick_count = 0 #current MIDI clock tick
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=3)
 ports = midi_in.get_ports()
+print(ports)
 
 # Find pisound MIDI
 port_identified = False
