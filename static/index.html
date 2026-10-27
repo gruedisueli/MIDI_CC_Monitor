@@ -30,6 +30,7 @@
     let current_cc_vals = {};
     let active = [];
     let current_tick = 0;
+    render();
 
     function createChart(cc) {
         const wrapper = document.createElement("div");
@@ -92,22 +93,30 @@
         });
     }
 
-    function updateCharts(){
-        //add the latest cc values to each graph
+    function render() {
         Object.keys(charts).forEach(c => {
-            const chart = charts[c]
-            const v = current_cc_vals[c]
-            if (chart.data.datasets[0].data.length <= current_tick){
-                chart.data.datasets[0].data.push({x: current_tick, y: v})
+            const chart = charts[c];
+            const v = current_cc_vals[c] ?? 0;
+
+            // update dataset
+            if (chart.data.datasets[0].data.length <= current_tick) {
+                chart.data.datasets[0].data.push({ x: current_tick, y: v });
+            } else {
+                chart.data.datasets[0].data[current_tick] = { x: current_tick, y: v };
             }
-            else{
-                chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
-            }
-            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
-            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
-            chart.update()
-        })
+
+            // update annotations
+            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick;
+            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick;
+            chart.options.plugins.annotation.annotations["currentValue"].yMin = v;
+            chart.options.plugins.annotation.annotations["currentValue"].yMax = v;
+
+            chart.update();
+        });
+
+        requestAnimationFrame(render);
     }
+
 
     socket.on("stop", () => {
         current_tick = 0
