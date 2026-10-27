@@ -86,6 +86,7 @@
             else{
                 chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
             }
+            console.log("tick", current_tick, "v", current_cc_vals[c]);
             chart.update()
         })
     }
