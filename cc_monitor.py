@@ -38,6 +38,7 @@ if not preferred:
 
 index = ports.index(preferred[0])
 midi_in.open_port(index)
+midi_in.ignore_types(sysex=False, timing=False)
 print("Opened JACK port:", preferred[0])
 
 # WEB SERVER
