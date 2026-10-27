@@ -96,11 +96,18 @@
         const totalHeight = rect.height;
         const perHeight = totalHeight / count;
 
-        // set explicit pixel height on each canvas
-        Array.from(container.querySelectorAll("canvas")).forEach(c => {
-            c.style.height = perHeight + "px";
+        // Resize each canvas properly
+        Object.values(charts).forEach(chart => {
+            const canvas = chart.canvas;
+
+            // Set intrinsic height so Chart.js redraws at correct resolution
+            canvas.height = perHeight;
+
+            // Force Chart.js to recompute layout
+            chart.resize();
         });
     }
+
 
 
     function updateCharts(){
@@ -182,19 +189,24 @@
 html, body {
   height: 100%;
   margin: 0;
+  padding: 0;
 }
 
 #charts {
-  height: calc(100vh - 60px);
+  height: calc(100vh - 60px); /* header space */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 20px;
   box-sizing: border-box;
   overflow: hidden; /* no scrolling */
 }
+
 #charts canvas {
   width: 100% !important;
   display: block;
+  /* IMPORTANT: no height here — JS sets intrinsic height */
 }
-
 
 </style>
 
