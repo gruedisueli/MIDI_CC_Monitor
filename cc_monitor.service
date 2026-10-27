@@ -1,6 +1,7 @@
 [Unit]
 Description=MIDI CC Monitor
-After=network.target sound.target
+After=network.target sound.target jack.service
+Requires=jack.service
 
 [Service]
 ExecStart=/home/patch/MIDI_CC_Monitor/venv/bin/python /home/patch/MIDI_CC_Monitor/cc_monitor.py
@@ -9,6 +10,9 @@ Restart=always
 RestartSec=2
 User=patch
 Environment=PYTHONUNBUFFERED=1
+Environment=JACK_PROMISCUOUS_SERVER=jack
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 
 [Install]
 WantedBy=multi-user.target
