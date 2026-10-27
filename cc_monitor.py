@@ -1,5 +1,7 @@
 from threading import Thread
+from queue import Queue
 import os
+import time
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
@@ -19,6 +21,7 @@ tick_count = 0 #current MIDI clock tick
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=3)
 ports = midi_in.get_ports()
+midi_queue = Queue()
 
 # Prefer MODEP MIDI output ports if present
 preferred = [
@@ -49,12 +52,21 @@ def root():
 def status():
     return {"midi_port_open": midi_in.is_port_open()}
 
-#MIDI LISTENER THREAD
-def midi_listener():
+#MIDI LISTENER THREAD (fast, to avoid bottlenecks on buffer)
+def midi_thread():
+    while True:
+        msg = midi_in.get_message()
+        while msg:
+            midi_queue.put(msg)
+            msg = midi_in.get_message()
+        time.sleep(0.001)
+
+#PROCESSING THREAD (slow websocket)
+def processing_thread():
     global tick_count
 
     while True:
-        msg = midi_in.get_message()
+        msg = midi_queue.get()
         if not msg:
             continue
         message, delta = msg
@@ -92,5 +104,6 @@ def midi_listener():
             continue
 
 if __name__ == "__main__":
-    Thread(target=midi_listener, daemon=True).start()
+    Thread(target=processing_thread, daemon=True).start()
+    Thread(target=midi_thread, daemon=True).start()
     socketio.run(app, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
