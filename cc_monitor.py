@@ -21,7 +21,7 @@ tick_count = 0 #current MIDI clock tick
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=3)
 ports = midi_in.get_ports()
-midi_queue = Queue()
+midi_queue = Queue(maxsize=10000)
 
 # Prefer MODEP MIDI output ports if present
 preferred = [
@@ -57,9 +57,15 @@ def midi_thread():
     while True:
         msg = midi_in.get_message()
         while msg:
-            midi_queue.put(msg)
+            try:
+                midi_queue.put_nowait(msg)
+            except:
+                # queue full — drop oldest
+                midi_queue.get_nowait()
+                midi_queue.put_nowait(msg)
+
             msg = midi_in.get_message()
-        time.sleep(0.001)
+
 
 #PROCESSING THREAD (slow websocket)
 def processing_thread():
