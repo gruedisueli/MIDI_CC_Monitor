@@ -79,12 +79,15 @@
         //add the latest cc values to each graph
         Object.keys(charts).forEach(c => {
             const chart = charts[c]
+            const v = current_cc_vals[c]
             if (chart.data.datasets[0].data.length <= current_tick){
-                chart.data.datasets[0].data.push({x: current_tick, y: current_cc_vals[c]})
+                chart.data.datasets[0].data.push({x: current_tick, y: v})
             }
             else{
-                chart.data.datasets[0].data[current_tick] = {x: current_tick, y: current_cc_vals[c]}
+                chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
             }
+            chart.options.plugins.annotation.annotations["currentValue"].yMin = v
+            chart.options.plugins.annotation.annotations["currentValue"].yMax = v
             chart.update()
         })
     }
@@ -132,14 +135,8 @@
         }
 
         current_cc_vals[cc] = parseInt(val)
-        const chart = charts[cc]
-        if (chart){
-            const v = current_cc_vals[cc]
-            chart.options.plugins.annotation.annotations["currentValue"].yMin = v
-            chart.options.plugins.annotation.annotations["currentValue"].yMax = v
-            chart.update()
-        }
-
+        
+        updateCharts()
     })
 
     </script>
