@@ -132,8 +132,7 @@
         if (current_tick >= max_ticks){
             current_tick = 0
         }
-        
-        updateCharts()
+        if (tick % 4 == 0) updateCharts() //reduce overhead at high tempos
     });
 
     socket.on("update_cc", msg => {
