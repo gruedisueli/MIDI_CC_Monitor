@@ -3,7 +3,7 @@ Description=MIDI CC Monitor
 After=network.target sound.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/patch/MIDI_CC_Monitor/cc_monitor.py
+ExecStart=/home/patch/MIDI_CC_Monitor/venv/bin/python /home/patch/MIDI_CC_Monitor/cc_monitor.py
 WorkingDirectory=/home/patch/MIDI_CC_Monitor
 Restart=always
 RestartSec=2
