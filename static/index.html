@@ -134,6 +134,7 @@
 
         const v = parseInt(val)
         current_cc_vals[cc] = v
+        const chart = charts[cc]
         chart.options.plugins.annotation.annotations["currentValue"].yMin = v
         chart.options.plugins.annotation.annotations["currentValue"].yMax = v
         chart.update()
