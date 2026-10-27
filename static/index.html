@@ -20,7 +20,7 @@
     socket.on("connect", () => {
     console.log("Socket connected:", socket.id);
     });
-    
+
     const max_charts = 8;
     const max_measures = 8;
     const beats_per_measure = 4;
@@ -107,6 +107,7 @@
     })
 
     socket.on("update_tick", msg => {
+        console.log("tick")
         const {tick} = msg
         current_tick += 1
         if (current_tick >= max_ticks){
