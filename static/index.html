@@ -30,6 +30,19 @@
     let current_cc_vals = {};
     let active = [];
     let current_tick = 0;
+    let chartUpdateScheduled = false;
+
+    function scheduleChartUpdate() {
+        if (chartUpdateScheduled) {
+            return;
+        }
+
+        chartUpdateScheduled = true;
+        requestAnimationFrame(() => {
+            chartUpdateScheduled = false;
+            Object.values(charts).forEach(chart => chart.update("none"));
+        });
+    }
 
     function createChart(cc) {
         const wrapper = document.createElement("div");
@@ -105,16 +118,16 @@
             }
             chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
             chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
-            chart.update()
         })
+        scheduleChartUpdate()
     }
 
     socket.on("stop", () => {
         current_tick = 0
         Object.values(charts).forEach(chart => {
             chart.data.datasets[0].data = []
-            chart.update()
         })
+        scheduleChartUpdate()
     })
 
     socket.on("start", () => {
@@ -132,7 +145,7 @@
         if (current_tick >= max_ticks){
             current_tick = 0
         }
-        updateCharts() //reduce overhead at high tempos
+        updateCharts()
     });
 
     socket.on("update_cc", msg => {
@@ -158,7 +171,7 @@
         const chart = charts[cc]
         chart.options.plugins.annotation.annotations["currentValue"].yMin = v
         chart.options.plugins.annotation.annotations["currentValue"].yMax = v
-        chart.update()
+        scheduleChartUpdate()
     })
 
     </script>
