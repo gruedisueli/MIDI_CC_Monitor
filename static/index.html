@@ -30,6 +30,10 @@
     let current_cc_vals = {};
     let active = [];
     let current_tick = 0;
+    const target_FPS = 10;
+    const frame_interval = 1000 / target_FPS;
+    let last_time = 0
+
     render();
 
     function createChart(cc) {
@@ -93,26 +97,32 @@
         });
     }
 
-    function render() {
-        Object.keys(charts).forEach(c => {
-            const chart = charts[c];
-            const v = current_cc_vals[c] ?? 0;
+    function render(timestamp) {
+        let elapsed = timestamp - last_time
+        
+        if (elapsed >= frame_interval)
+        {
+            last_time = timestamp
+            Object.keys(charts).forEach(c => {
+                const chart = charts[c];
+                const v = current_cc_vals[c] ?? 0;
 
-            // update dataset
-            if (chart.data.datasets[0].data.length <= current_tick) {
-                chart.data.datasets[0].data.push({ x: current_tick, y: v });
-            } else {
-                chart.data.datasets[0].data[current_tick] = { x: current_tick, y: v };
-            }
+                // update dataset
+                if (chart.data.datasets[0].data.length <= current_tick) {
+                    chart.data.datasets[0].data.push({ x: current_tick, y: v });
+                } else {
+                    chart.data.datasets[0].data[current_tick] = { x: current_tick, y: v };
+                }
 
-            // update annotations
-            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick;
-            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick;
-            chart.options.plugins.annotation.annotations["currentValue"].yMin = v;
-            chart.options.plugins.annotation.annotations["currentValue"].yMax = v;
+                // update annotations
+                chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick;
+                chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick;
+                chart.options.plugins.annotation.annotations["currentValue"].yMin = v;
+                chart.options.plugins.annotation.annotations["currentValue"].yMax = v;
 
-            chart.update();
-        });
+                chart.update();
+            });
+        }
 
         requestAnimationFrame(render);
     }
