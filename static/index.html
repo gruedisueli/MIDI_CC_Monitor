@@ -58,14 +58,13 @@
         };
 
         
-        // Add vertical dashed line for current tick
+        // Add vertical line for current tick
         annotations["currentTick"] = {
             type: "line",
             xMin: 0,          // temporary placeholder
             xMax: 0,          // updated later
-            borderColor: "green",
-            borderWidth: 1,
-            borderDash: [6, 6]   // dashed line
+            borderColor: "yellow",
+            borderWidth: 3,
         };
 
         charts[cc] = new Chart(ctx, {
