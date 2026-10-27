@@ -19,19 +19,19 @@ MIDI_STOP_MESSAGE = 0xFC
 tick_count = 0 #current MIDI clock tick
 
 # SETUP
-midi_in = rtmidi.MidiIn(rtapi=3)
+midi_in = rtmidi.MidiIn(rtapi=2)
 ports = midi_in.get_ports()
 midi_queue = Queue(maxsize=10000)
 
 # Prefer MODEP MIDI output ports if present
 preferred = [
     p for p in ports
-    if "mod-midi-merger:out" in p or "mod-midi-broadcaster:out" in p
+    if "pisound" in p
 ]
 
-# Otherwise fall back to Pisound hardware ports
-if not preferred:
-    preferred = [p for p in ports if p.startswith("system:midi_capture")]
+# # Otherwise fall back to Pisound hardware ports
+# if not preferred:
+#     preferred = [p for p in ports if p.startswith("system:midi_capture")]
 
 if not preferred:
     raise RuntimeError("No usable JACK MIDI ports found")
