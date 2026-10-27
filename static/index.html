@@ -107,7 +107,6 @@
     })
 
     socket.on("update_tick", msg => {
-        console.log("tick")
         const {tick} = msg
         current_tick += 1
         if (current_tick >= max_ticks){

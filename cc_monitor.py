@@ -71,7 +71,6 @@ def processing_thread():
             continue
         message, delta = msg
         status = message[0]
-        print("msg received")
 
         if status == MIDI_START_MESSAGE:
             tick_count = 0
