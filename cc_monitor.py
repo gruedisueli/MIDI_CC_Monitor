@@ -65,7 +65,9 @@ def processing_thread():
     global tick_count
 
     while True:
-        msg = midi_queue.get()
+        if not midi_queue:
+            continue
+        msg = midi_queue.popleft()
         if not msg:
             continue
         message, delta = msg
