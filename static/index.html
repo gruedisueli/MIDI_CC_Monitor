@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>MIDI CC Monitor</h2>
+  <div id="charts"></div>
+    <script>
+    const socket = io(); //served from same host/port, so automatically connects to ws://<pisound-ip>:5000/socket.io/
+    const max_charts = 8;
+    const max_measures = 8;
+    const beats_per_measure = 4;
+    const ticks_per_beat = 24;
+    const max_ticks = max_measures * beats_per_measure * ticks_per_beat;
+    let charts = {};
+    let current_cc_vals = {};
+    let active = [];
+    let current_tick = 0;
+
+    function createChart(cc) {
+        const ctx = document.createElement("canvas");
+        document.getElementById("charts").appendChild(ctx);
+
+        // Precompute beat line annotations
+        const annotations = {};
+        for (let i = 0; i < max_ticks; i += ticks_per_beat) {
+            annotations["beat" + i] = {
+                type: "line",
+                xMin: i,
+                xMax: i,
+                borderColor: "red",
+                borderWidth: 1
+            };
+        }
+
+        // Add horizontal dashed line for current CC value
+        annotations["currentValue"] = {
+            type: "line",
+            yMin: 0,          // temporary placeholder
+            yMax: 0,          // updated later
+            borderColor: "blue",
+            borderWidth: 1,
+            borderDash: [6, 6]   // dashed line
+        };
+
+        charts[cc] = new Chart(ctx, {
+            type: "line",
+            data: { datasets: [{ label: `CC ${cc}`, data: [] }] },
+            options: {               
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    x: { type: "linear", min: 0, max: max_ticks },
+                    y: { min: 0, max: 127 }
+                },
+                plugins: {
+                    annotation: { annotations: annotations }
+                }
+            }
+        });
+    }
+
+    function updateCharts(){
+        //add the latest cc values to each graph
+        Object.keys(charts).forEach(c => {
+            const chart = charts[c]
+            if (chart.data.datasets[0].data.length <= current_tick){
+                chart.data.datasets[0].data.push({x: current_tick, y: current_cc_vals[c]})
+            }
+            else{
+                chart.data.datasets[0].data[current_tick] = {x: current_tick, y: current_cc_vals[c]}
+            }
+            chart.update()
+        })
+    }
+
+    socket.on("stop", () => {
+        current_tick = 0
+        Object.values(charts).forEach(chart => {
+            chart.data.datasets[0].data = []
+            chart.update()
+        })
+    })
+
+    socket.on("start", () => {
+        current_tick = 0
+        updateCharts()
+    })
+
+    socket.on("continue", () => {
+        // do nothing
+    })
+
+    socket.on("update_tick", msg => {
+        const {tick} = msg
+        current_tick += 1
+        if (current_tick >= max_ticks){
+            current_tick = 0
+        }
+
+        updateCharts()
+    });
+
+    socket.on("update_cc", msg => {
+        const {cc, val} = msg;
+        
+        //create new chart / purge old charts
+        if (!active.includes(cc)){
+            active.push(cc)
+            if (active.length >= max_charts){
+                const old = active.pop(0)
+                charts[old].destroy()
+                delete charts[old]
+                delete current_cc_vals[old]
+            }
+            createChart(cc)
+        }
+
+        current_cc_vals[cc] = parseInt(val)
+        const chart = charts[cc]
+        if (chart){
+            const v = current_cc_vals[cc]
+            chart.options.plugins.annotation.annotations["currentValue"].yMin = v
+            chart.options.plugins.annotation.annotations["currentValue"].yMax = v
+            chart.update()
+        }
+
+    })
+
+    </script>
+</body>
+<style>
+    
+  html, body {
+  height: 100%;
+  margin: 0;
+  }
+
+  #charts {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px); /* subtract header height */
+    gap: 10px; /* spacing between charts */
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  #charts canvas {
+    width: 100% !important;
+    flex: 1 1 auto; /* each chart gets equal vertical space */
+  }
+</style>
+
+</html>
