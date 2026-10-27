@@ -32,10 +32,14 @@
     let current_tick = 0;
 
     function createChart(cc) {
-        const ctx = document.createElement("canvas");
-        document.getElementById("charts").appendChild(ctx);
+        const wrapper = document.createElement("div");
+        wrapper.className = "chart-wrapper";
 
-        // Precompute beat line annotations
+        const ctx = document.createElement("canvas");
+        wrapper.appendChild(ctx);
+
+        document.getElementById("charts").appendChild(wrapper);
+
         const annotations = {};
         for (let i = 0; i < max_ticks; i += ticks_per_beat) {
             annotations["beat" + i] = {
@@ -47,22 +51,19 @@
             };
         }
 
-        // Add horizontal dashed line for current CC value
         annotations["currentValue"] = {
             type: "line",
-            yMin: 0,          // temporary placeholder
-            yMax: 0,          // updated later
+            yMin: 0,
+            yMax: 0,
             borderColor: "blue",
             borderWidth: 1,
-            borderDash: [6, 6]   // dashed line
+            borderDash: [6, 6]
         };
 
-        
-        // Add vertical line for current tick
         annotations["currentTick"] = {
             type: "line",
-            xMin: 0,          // temporary placeholder
-            xMax: 0,          // updated later
+            xMin: 0,
+            xMax: 0,
             borderColor: "yellow",
             borderWidth: 3,
         };
@@ -70,9 +71,9 @@
         charts[cc] = new Chart(ctx, {
             type: "line",
             data: { datasets: [{ label: `CC ${cc}`, data: [] }] },
-            options: {               
+            options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false,   // critical for filling parent
                 animation: false,
                 scales: {
                     x: { type: "linear", min: 0, max: max_ticks },
@@ -83,33 +84,7 @@
                 }
             }
         });
-
-        resizeCharts()
     }
-
-    function resizeCharts() {
-        const container = document.getElementById("charts");
-        const rect = container.getBoundingClientRect();
-        const count = Object.keys(charts).length;
-        if (count === 0) return;
-
-        const totalHeight = rect.height;
-        const perHeight = totalHeight / count;
-
-        // Resize each canvas properly
-        Object.values(charts).forEach(chart => {
-            const canvas = chart.canvas;
-
-            // Set intrinsic height so Chart.js redraws at correct resolution
-            canvas.height = perHeight;
-
-            // Force Chart.js to recompute layout
-            chart.resize();
-            chart.update();
-        });
-    }
-
-
 
     function updateCharts(){
         //add the latest cc values to each graph
@@ -171,7 +146,6 @@
                 if (canvases.length > 0) {
                     container.removeChild(canvases[0]);
                 }
-                resizeCharts()
             }
             createChart(cc)
         }
@@ -190,24 +164,41 @@
 html, body {
   height: 100%;
   margin: 0;
-  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+h2 {
+  margin: 0;
+  padding: 10px 20px;
+  flex: 0 0 auto;
 }
 
 #charts {
-  height: calc(100vh - 60px); /* header space */
+  flex: 1 1 auto;                 /* takes remaining viewport height */
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 20px;
+  padding: 10px 20px 20px;
   box-sizing: border-box;
-  overflow: hidden; /* no scrolling */
+  overflow: hidden;               /* no scrolling */
 }
 
-#charts canvas {
-  width: 100% !important;
-  display: block;
-  /* IMPORTANT: no height here — JS sets intrinsic height */
+.chart-wrapper {
+  flex: 1 1 0;                    /* equal vertical space per chart */
+  width: 100%;
+  position: relative;             /* Chart.js expects this */
 }
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;        /* fill wrapper */
+  display: block;
+}
+
 
 </style>
 
