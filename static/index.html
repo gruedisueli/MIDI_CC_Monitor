@@ -57,6 +57,17 @@
             borderDash: [6, 6]   // dashed line
         };
 
+        
+        // Add vertical dashed line for current tick
+        annotations["currentTick"] = {
+            type: "line",
+            xMin: 0,          // temporary placeholder
+            xMax: 0,          // updated later
+            borderColor: "green",
+            borderWidth: 1,
+            borderDash: [6, 6]   // dashed line
+        };
+
         charts[cc] = new Chart(ctx, {
             type: "line",
             data: { datasets: [{ label: `CC ${cc}`, data: [] }] },
@@ -86,6 +97,8 @@
             else{
                 chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
             }
+            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
+            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
             chart.update()
         })
     }
