@@ -134,8 +134,7 @@
     }
 
     function midiCC(cc, val) {
-        const {cc, val} = msg;
-        
+       
         //create new chart / purge old charts
         if (!active.includes(cc)){
             if (active.length >= max_charts){
