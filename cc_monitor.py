@@ -1,27 +1,24 @@
 from threading import Thread
 import os
 from collections import deque
+import time
 
 from flask import Flask, send_from_directory
 from flask_socketio import SocketIO
 import rtmidi
 
 # SETTINGS
-TICKS_PER_BEAT = 24
 MIDI_CLOCK_MESSAGE = 0xF8
 MIDI_CC_MESSAGE = 0xB0
 MIDI_START_MESSAGE = 0xFA
 MIDI_CONTINUE_MESSAGE = 0xFB
 MIDI_STOP_MESSAGE = 0xFC
-
-# STATE
-tick_count = 0 #current MIDI clock tick
+WEBSOCKET_INTERVAL_SECONDS = 0.1
 
 # SETUP
 midi_in = rtmidi.MidiIn(rtapi=2)
 ports = midi_in.get_ports()
-clock_queue = deque(maxlen=20000)
-cc_queue = deque(maxlen=1000)
+msg_buffer = deque(maxlen=20000)
 
 # Prefer MODEP MIDI output ports if present
 preferred = [
@@ -58,57 +55,23 @@ def midi_thread():
     while True:
         msg = midi_in.get_message()
         while msg:
-            status = msg[0][0]
+            message = msg[0]
+            status = message[0]
 
-            if status == MIDI_CLOCK_MESSAGE or status == MIDI_START_MESSAGE or status == MIDI_STOP_MESSAGE or status == MIDI_CONTINUE_MESSAGE:
-                clock_queue.append(msg) 
-            elif (status & 0xF0) == MIDI_CC_MESSAGE: #bit mask to include all CC channels
-                cc_queue.append(msg) 
+            if status == MIDI_CLOCK_MESSAGE or status == MIDI_START_MESSAGE or status == MIDI_STOP_MESSAGE or status == MIDI_CONTINUE_MESSAGE or (status & 0xF0) == MIDI_CC_MESSAGE: #bit mask to include all CC channels
+                msg_buffer.append(message) 
             #ignore all other midi messages
 
             msg = midi_in.get_message()
 
-
-
-#PROCESSING THREAD (slow websocket)
+#PROCESSING THREAD (batched websocket messages)
 def processing_thread():
-    global tick_count
-
     while True:
+        time.sleep(WEBSOCKET_INTERVAL_SECONDS)
         #prioritized popping of elements off of queues, never drop a tick.
-        if clock_queue:
-            msg = clock_queue.popleft()
-            message, delta = msg
-            status = message[0]
-            if status == MIDI_CLOCK_MESSAGE:
-                tick_count += 1
-                if tick_count >= TICKS_PER_BEAT:
-                    tick_count = 0
-                socketio.emit("update_tick", {"tick": tick_count})
-            elif status == MIDI_START_MESSAGE:
-                tick_count = 0
-                socketio.emit("start")
-            elif status == MIDI_STOP_MESSAGE:
-                tick_count = 0
-                socketio.emit("stop")
-            elif status == MIDI_CONTINUE_MESSAGE:
-                socketio.emit("continue")
-            continue
-
-        if not cc_queue:
-            continue
-
-        msg = cc_queue.popleft()
-        if not msg:
-            continue
-        message, delta = msg
-        status = message[0]
-        cc = message[1]
-        val = message[2]
-        socketio.emit("update_cc", {
-            "cc": cc,
-            "val": val
-        })
+        if msg_buffer:
+            msg_list = [msg_buffer.popleft() for _ in range(len(msg_buffer))]    
+            socketio.emit("update", {"midi_buffer": msg_list})
 
 if __name__ == "__main__":
     Thread(target=processing_thread, daemon=True).start()

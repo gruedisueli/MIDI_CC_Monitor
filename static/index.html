@@ -21,6 +21,11 @@
     console.log("Socket connected:", socket.id);
     });
 
+    const MIDI_CLOCK_MESSAGE = 0xF8
+    const MIDI_CC_MESSAGE = 0xB0
+    const MIDI_START_MESSAGE = 0xFA
+    const MIDI_CONTINUE_MESSAGE = 0xFB
+    const MIDI_STOP_MESSAGE = 0xFC
     const max_charts = 8;
     const max_measures = 8;
     const beats_per_measure = 4;
@@ -92,8 +97,30 @@
         });
     }
 
-    function updateCharts(){
-        //add the latest cc values to each graph
+    function midiStop() {
+        current_tick = 0
+        // Object.values(charts).forEach(chart => {
+        //     chart.data.datasets[0].data = []
+        //     chart.update()
+        // })
+    }
+
+    function midiStart() {
+        current_tick = 0
+    }
+
+    function midiContinue() {
+        // do nothing
+    }
+
+    function midiTick() {
+        const {tick} = msg
+        current_tick += 1
+        if (current_tick >= max_ticks){
+            current_tick = 0
+        }
+
+        //update data points in charts (but do not refresh them yet)
         Object.keys(charts).forEach(c => {
             const chart = charts[c]
             const v = current_cc_vals[c]
@@ -103,39 +130,10 @@
             else{
                 chart.data.datasets[0].data[current_tick] = {x: current_tick, y: v}
             }
-            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
-            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
-            chart.update()
         })
     }
 
-    socket.on("stop", () => {
-        current_tick = 0
-        Object.values(charts).forEach(chart => {
-            chart.data.datasets[0].data = []
-            chart.update()
-        })
-    })
-
-    socket.on("start", () => {
-        current_tick = 0
-        updateCharts()
-    })
-
-    socket.on("continue", () => {
-        // do nothing
-    })
-
-    socket.on("update_tick", msg => {
-        const {tick} = msg
-        current_tick += 1
-        if (current_tick >= max_ticks){
-            current_tick = 0
-        }
-        updateCharts() //reduce overhead at high tempos
-    });
-
-    socket.on("update_cc", msg => {
+    function midiCC(cc, val) {
         const {cc, val} = msg;
         
         //create new chart / purge old charts
@@ -155,11 +153,52 @@
 
         const v = parseInt(val)
         current_cc_vals[cc] = v
-        const chart = charts[cc]
-        chart.options.plugins.annotation.annotations["currentValue"].yMin = v
-        chart.options.plugins.annotation.annotations["currentValue"].yMax = v
-        chart.update()
+    }
+
+    function parseMidiPacket(bytes){
+        const status = bytes[0]
+        if (status === MIDI_CLOCK_MESSAGE){
+            midiTick()
+            return
+        }
+        if (status === MIDI_START_MESSAGE){
+            midiStart()
+            return
+        }
+        if (status === MIDI_STOP_MESSAGE){
+            midiStop()
+            return
+        }
+        if (status === MIDI_CONTINUE_MESSAGE){
+            midiContinue()
+            return
+        }
+        if ((status & 0xF0) === MIDI_CC_MESSAGE){
+            const cc = bytes[1]
+            const val = bytes[2]
+            midiCC(cc, val)
+            return
+        }
+    }
+
+    socket.on("update", msg => {
+        const {midi_buffer} = msg
+        midi_buffer.forEach(packet => {
+            parseMidiPacket(packet)
+        })
+
+        //redraw charts
+        Object.keys(charts).forEach(c => {
+            const chart = charts[c]
+            const v = current_cc_vals[c]
+            chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
+            chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
+            chart.options.plugins.annotation.annotations["currentValue"].yMin = v
+            chart.options.plugins.annotation.annotations["currentValue"].yMax = v
+            chart.update()
+        })
     })
+
 
     </script>
 </body>
