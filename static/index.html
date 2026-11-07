@@ -34,6 +34,7 @@
     let charts = [];
     let active = {};//key = cc, value = {last_timestamp, chart_index, current_cc_value}
     let current_tick = 0;
+    createCharts();
 
     function createCharts(){
         for (let i = 0; i < max_charts; i++){
