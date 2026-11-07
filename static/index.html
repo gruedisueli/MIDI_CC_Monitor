@@ -31,70 +31,75 @@
     const beats_per_measure = 4;
     const ticks_per_beat = 24;
     const max_ticks = max_measures * beats_per_measure * ticks_per_beat;
-    let charts = {};
-    let current_cc_vals = {};
-    let active = [];
+    let charts = [];
+    let active = {};//key = cc, value = {last_timestamp, chart_index, current_cc_value}
     let current_tick = 0;
 
-    function createChart(cc) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "chart-wrapper";
+    function createCharts(){
+        for (let i = 0; i < max_charts; i++){
+            const wrapper = document.createElement("div");
+            wrapper.className = "chart-wrapper";
+            const ctx = document.createElement("canvas");
+            wrapper.appendChild(ctx);
 
-        const ctx = document.createElement("canvas");
-        wrapper.appendChild(ctx);
+            document.getElementById("charts").appendChild(wrapper);
 
-        document.getElementById("charts").appendChild(wrapper);
-
-        const annotations = {};
-        for (let i = 0; i < max_ticks; i += ticks_per_beat) {
-            annotations["beat" + i] = {
-                type: "line",
-                xMin: i,
-                xMax: i,
-                borderColor: "red",
-                borderWidth: 1
-            };
-        }
-
-        annotations["currentValue"] = {
-            type: "line",
-            yMin: 0,
-            yMax: 0,
-            borderColor: "blue",
-            borderWidth: 1,
-            borderDash: [6, 6]
-        };
-
-        annotations["currentTick"] = {
-            type: "line",
-            xMin: 0,
-            xMax: 0,
-            borderColor: "yellow",
-            borderWidth: 3,
-        };
-
-        charts[cc] = new Chart(ctx, {
-            type: "line",
-            data: { datasets: [{ label: `CC ${cc}`, data: [] }] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,   // critical for filling parent
-                animation: false,
-                onResize: (chart, size) => {
-                    const compact = size.height < 100;
-                    chart.options.plugins.legend.position = compact ? "right" : "top";
-                    chart.options.scales.x.ticks.display = !compact;
-                    chart.options.scales.y.ticks.maxTicksLimit = compact ? 3 : 11;
-                },
-                scales: {
-                    x: { type: "linear", min: 0, max: max_ticks },
-                    y: { min: 0, max: 127 }
-                },
-                plugins: {
-                    annotation: { annotations: annotations }
-                }
+            const annotations = {};
+            for (let i = 0; i < max_ticks; i += ticks_per_beat) {
+                annotations["beat" + i] = {
+                    type: "line",
+                    xMin: i,
+                    xMax: i,
+                    borderColor: "red",
+                    borderWidth: 1
+                };
             }
-        });
+
+            annotations["currentValue"] = {
+                type: "line",
+                yMin: 0,
+                yMax: 0,
+                borderColor: "blue",
+                borderWidth: 1,
+                borderDash: [6, 6]
+            };
+
+            annotations["currentTick"] = {
+                type: "line",
+                xMin: 0,
+                xMax: 0,
+                borderColor: "yellow",
+                borderWidth: 3,
+            };
+
+            charts.push(new Chart(ctx, {
+                type: "line",
+                data: { datasets: [{ label: `CC n/a`, data: [] }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,   // critical for filling parent
+                    animation: false,
+                    onResize: (chart, size) => {
+                        const compact = size.height < 100;
+                        chart.options.plugins.legend.position = compact ? "right" : "top";
+                        chart.options.scales.x.ticks.display = !compact;
+                        chart.options.scales.y.ticks.maxTicksLimit = compact ? 3 : 11;
+                    },
+                    scales: {
+                        x: { type: "linear", min: 0, max: max_ticks },
+                        y: { min: 0, max: 127 }
+                    },
+                    plugins: {
+                        annotation: { annotations: annotations }
+                    }
+                }
+            }));
+        }
+    }
+
+    function assignChart(cc, idx) {
+        const chart = charts[idx]
+        chart.data.datasets.label = `CC ${cc}`
     }
 
     function midiStop() {
@@ -120,9 +125,10 @@
         }
 
         //update data points in charts (but do not refresh them yet)
-        Object.keys(charts).forEach(c => {
-            const chart = charts[c]
-            const v = current_cc_vals[c]
+        Object.keys(active).forEach(cc => {
+            const cc_data = active[cc]
+            const v = cc_data.current_cc_value
+            const chart = charts[cc_data.chart_index]
             if (chart.data.datasets[0].data.length <= current_tick){
                 chart.data.datasets[0].data.push({x: current_tick, y: v})
             }
@@ -135,22 +141,39 @@
     function midiCC(cc, val) {
        
         //create new chart / purge old charts
-        if (!active.includes(cc)){
-            if (active.length >= max_charts){
-                const old = active.shift()
-                const oldChart = charts[old]
-                const oldWrapper = oldChart.canvas.parentElement
-                oldChart.destroy()
-                oldWrapper.remove()
-                delete charts[old]
-                delete current_cc_vals[old]
+        if (!Object.hasOwn(active, cc)){
+            let chart_idx = 0
+            if (Object.keys(active).length >= max_charts){
+                let oldest_key = ""
+                let oldest_time = Number.MAX_SAFE_INTEGER
+                Object.keys(active).forEach(cc => {
+                    const cc_data = active[cc]
+                    if (cc_data.last_timestamp < oldest_time){
+                        oldest_time = cc_data.last_timestamp
+                        oldest_key = cc
+                        chart_idx = cc_data.chart_index
+                    }
+                })
+                if (oldest_key == ""){
+                    console.error("oldest chart not found")
+                    return
+                }
+                delete active[cc]
             }
-            active.push(cc)
-            createChart(cc)
+            else{
+                chart_idx = Object.keys(active).length
+            }
+            assignChart(cc, chart_idx)
+            active[cc] = {
+                last_timestamp: 0,
+                chart_index: chart_idx,
+                current_cc_value: 0
+            }
         }
 
         const v = parseInt(val)
-        current_cc_vals[cc] = v
+        active[cc].current_cc_value = v
+        active[cc].last_timestamp = Date.now()
     }
 
     function parseMidiPacket(bytes){
@@ -186,9 +209,10 @@
         })
 
         //redraw charts
-        Object.keys(charts).forEach(c => {
-            const chart = charts[c]
-            const v = current_cc_vals[c]
+        Object.keys(active).forEach(cc => {
+            const cc_data = active[cc]
+            const v = cc_data.current_cc_value
+            const chart = charts[cc_data.chart_index]
             chart.options.plugins.annotation.annotations["currentTick"].xMin = current_tick
             chart.options.plugins.annotation.annotations["currentTick"].xMax = current_tick
             chart.options.plugins.annotation.annotations["currentValue"].yMin = v
