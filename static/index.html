@@ -26,6 +26,7 @@
     const MIDI_START_MESSAGE = 0xFA
     const MIDI_CONTINUE_MESSAGE = 0xFB
     const MIDI_STOP_MESSAGE = 0xFC
+    const IGNORE_CCS = [50, 51, 54] //used by arturia keyboard for start/stop/continue/record buttons
     const max_charts = 8;
     const max_measures = 8;
     const beats_per_measure = 4;
@@ -141,7 +142,9 @@
     }
 
     function midiCC(cc, val) {
-       
+        if (IGNORE_CCS.includes(cc)) {
+            return
+        }
         //create new chart / purge old charts
         if (!Object.hasOwn(active, cc)){
             let chart_idx = Object.keys(active).length
