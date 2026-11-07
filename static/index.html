@@ -100,7 +100,8 @@
 
     function assignChart(cc, idx) {
         const chart = charts[idx]
-        chart.data.datasets.label = `CC ${cc}`
+        chart.data.datasets[0].label = `CC ${cc}`
+        chart.update()
     }
 
     function midiStop() {
@@ -143,8 +144,8 @@
        
         //create new chart / purge old charts
         if (!Object.hasOwn(active, cc)){
-            let chart_idx = 0
-            if (Object.keys(active).length >= max_charts){
+            let chart_idx = Object.keys(active).length
+            if (chart_idx >= max_charts){
                 let oldest_key = ""
                 let oldest_time = Number.MAX_SAFE_INTEGER
                 Object.keys(active).forEach(cc => {
@@ -160,9 +161,6 @@
                     return
                 }
                 delete active[cc]
-            }
-            else{
-                chart_idx = Object.keys(active).length
             }
             assignChart(cc, chart_idx)
             active[cc] = {
